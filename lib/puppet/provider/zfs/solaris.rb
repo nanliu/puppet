@@ -4,6 +4,16 @@ Puppet::Type.type(:zfs).provide(:solaris) do
   commands :zfs => "/usr/sbin/zfs"
   defaultfor :operatingsystem => :solaris
 
+  def self.instances
+    zfs_list = zfs(:list).split("\n")
+    key = zfs_list.shift.split
+
+    zfs_list = zfs_list.collect{ |l| l.split }
+    zfs_list.collect do |l|
+      new(:name => l[key.index('NAME')])
+    end
+  end
+
   def add_properties
     properties = []
     Puppet::Type.type(:zfs).validproperties.each do |property|
@@ -33,7 +43,12 @@ Puppet::Type.type(:zfs).provide(:solaris) do
 
   [:aclinherit, :aclmode, :atime, :canmount, :checksum, :compression, :copies, :devices, :exec, :logbias, :mountpoint, :nbmand, :primarycache, :quota, :readonly, :recordsize, :refquota, :refreservation, :reservation, :secondarycache, :setuid, :shareiscsi, :sharenfs, :sharesmb, :snapdir, :version, :volsize, :vscan, :xattr, :zoned, :vscan].each do |field|
     define_method(field) do
-      zfs(:get, "-H", "-o", "value", field, @resource[:name]).strip
+      begin
+        zfs(:get, "-H", "-o", "value", field, @resource[:name]).strip
+      rescue Exception => e
+        Puppet.debug("Puppet::ZFS: unsupported attribute: #{field}")
+        :undef
+      end
     end
 
     define_method(field.to_s + "=") do |should|

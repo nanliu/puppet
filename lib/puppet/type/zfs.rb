@@ -6,9 +6,19 @@ module Puppet
 instance, the zfs resource will autorequire it. If Puppet is managing any
 parent zfs instances, the zfs resource will autorequire them."
 
-    ensurable
+    ensurable do
+      defaultto(:present)
 
-    newparam(:name) do
+      newvalue(:present) do
+        provider.create
+      end
+
+      newvalue(:absent) do
+        provider.destroy
+      end
+    end
+
+    newparam(:name, :namevar=>true) do
       desc "The full name for this filesystem (including the zpool)."
     end
 
